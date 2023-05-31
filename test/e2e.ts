@@ -19,6 +19,7 @@ import { UserOperation, getUserOpHash } from "./helpers";
 import { BigNumber, Signer } from "ethers";
 import { Provider } from "@ethersproject/abstract-provider";
 import { EntryPoint__factory } from "@account-abstraction/contracts";
+import fetch from "node-fetch";
 
 // Based on https://github.com/eth-infinitism/bundler#running-local-node
 const BUNDLER_URL = "http://localhost:3000/rpc";
@@ -90,7 +91,7 @@ describe("#e2e", () => {
       ENTRYPOINT_ADDRESS,
       ethersSigner
     );
- 
+
     // Add some deposit in entry point contract for the wallet
     // This is optional - if there is no deposit, then wallet need to pay the fee from the wallet balance
     // If deposit is positive, entry point deduct from that
@@ -157,8 +158,13 @@ describe("#e2e", () => {
 
     // Encode proof and inputs as signature
     userOp.signature = defaultAbiCoder.encode(
-      ["uint256[8]", "uint256"],
-      [fullProof.proof, fullProof.nullifierHash]
+      ["uint256[8]", "uint256", "uint256", "uint256"],
+      [
+        fullProof.proof,
+        fullProof.merkleTreeRoot,
+        group.depth,
+        fullProof.nullifierHash,
+      ]
     );
 
     // Send UserOp to the bundler

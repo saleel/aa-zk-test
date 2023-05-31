@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "hardhat test"
+    "test": "hardhat test --network localhost"
   },
   "keywords": [],
   "author": "",
@@ -17,7 +17,8 @@
     "@semaphore-protocol/hardhat": "^3.10.1",
     "@semaphore-protocol/identity": "^3.10.1",
     "@semaphore-protocol/proof": "^3.10.1",
-    "big-integer": "^1.6.51"
+    "big-integer": "^1.6.51",
+    "node-fetch": "^2.3.0"
   },
   "devDependencies": {
     "@ethersproject/abstract-provider": "^5.7.0",

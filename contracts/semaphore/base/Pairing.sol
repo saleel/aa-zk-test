@@ -78,7 +78,7 @@ library Pairing {
 
         // solium-disable-next-line security/no-inline-assembly
         assembly {
-            success := staticcall(sub(gas(), 2000), 6, input, 0xc0, r, 0x60)
+            success := staticcall(gas(), 6, input, 0xc0, r, 0x60)
         }
 
         if (!success) {
@@ -105,7 +105,7 @@ library Pairing {
 
         // solium-disable-next-line security/no-inline-assembly
         assembly {
-            success := staticcall(sub(gas(), 2000), 7, input, 0x80, r, 0x60)
+            success := staticcall(gas(), 7, input, 0x80, r, 0x60)
         }
 
         if (!success) {
@@ -141,7 +141,7 @@ library Pairing {
 
         // solium-disable-next-line security/no-inline-assembly
         assembly {
-            success := staticcall(sub(gas(), 2000), 8, add(input, 0x20), mul(inputSize, 0x20), out, 0x20)
+            success := staticcall(gas(), 8, add(input, 0x20), mul(inputSize, 0x20), out, 0x20)
         }
 
         if (!success || out[0] != 1) {

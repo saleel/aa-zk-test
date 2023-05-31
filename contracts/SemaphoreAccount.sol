@@ -11,11 +11,22 @@ contract SemaphoreAccount is BaseAccount, UUPSUpgradeable, Initializable {
     Semaphore public semaphore;
     uint256 public groupId;
     IEntryPoint private immutable _entryPoint;
+    ISemaphoreVerifier verifier;
+    uint256 _currentMerkleRoot;
 
     event SemaphoreAccountInitialized(
         IEntryPoint indexed entryPoint,
         uint256 indexed groupId
     );
+
+    modifier verifyGroup() {
+        uint256 latestMerkleRoot = semaphore.getMerkleTreeRoot(groupId);
+        if (_currentMerkleRoot != latestMerkleRoot) {
+            _currentMerkleRoot = latestMerkleRoot;
+            revert("SemaphoreAccount: invalid merkle root used in proof");
+        }
+        _;
+    }
 
     constructor(IEntryPoint anEntryPoint) {
         _entryPoint = anEntryPoint;
@@ -24,10 +35,12 @@ contract SemaphoreAccount is BaseAccount, UUPSUpgradeable, Initializable {
 
     function initialize(
         address _semaphoreAddress,
+        address _verifierAdress,
         uint256 _groupId
     ) public virtual initializer {
         groupId = _groupId;
         semaphore = Semaphore(_semaphoreAddress);
+        verifier = ISemaphoreVerifier(_verifierAdress);
 
         emit SemaphoreAccountInitialized(_entryPoint, _groupId);
     }
@@ -42,7 +55,7 @@ contract SemaphoreAccount is BaseAccount, UUPSUpgradeable, Initializable {
         address dest,
         uint256 value,
         bytes calldata func
-    ) external {
+    ) external verifyGroup {
         _requireFromEntryPoint();
         _call(dest, value, func);
     }
@@ -64,19 +77,20 @@ contract SemaphoreAccount is BaseAccount, UUPSUpgradeable, Initializable {
         UserOperation calldata userOp,
         bytes32 userOpHash
     ) internal virtual override returns (uint256 validationData) {
-        // Fetch group details from Semaphore contract
-        uint256 merkleTreeRoot = semaphore.getMerkleTreeRoot(groupId);
-        uint256 merkleTreeDepth = semaphore.getMerkleTreeDepth(groupId);
-
-        // Decode signature
-        (uint256[8] memory proof, uint256 nullifierHash) = abi.decode(
-            userOp.signature,
-            (uint256[8], uint256)
-        );
+        // Decode proof + inputs from signature
+        (
+            uint256[8] memory proof,
+            uint256 merkleTreeRoot,
+            uint256 merkleTreeDepth,
+            uint256 nullifierHash
+        ) = abi.decode(
+                userOp.signature,
+                (uint256[8], uint256, uint256, uint256)
+            );
         uint256 signal = uint256(userOpHash);
 
         try
-            ISemaphoreVerifier(semaphore.verifier()).verifyProof(
+            verifier.verifyProof(
                 merkleTreeRoot,
                 nullifierHash,
                 signal, // Signal
@@ -85,8 +99,12 @@ contract SemaphoreAccount is BaseAccount, UUPSUpgradeable, Initializable {
                 merkleTreeDepth
             )
         {
+            // Set merkle root used for verification in storage
+            // This will be validated during execution
+            _currentMerkleRoot = merkleTreeRoot;
+
             return 0; // 0 returned means signature valid as per 4337
-        }  catch (bytes memory reason) {
+        } catch (bytes memory reason) {
             return 1;
         }
     }

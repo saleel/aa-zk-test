@@ -4,10 +4,12 @@ pragma solidity ^0.8.12;
 import "@openzeppelin/contracts/utils/Create2.sol";
 import "@openzeppelin/contracts/proxy/ERC1967/ERC1967Proxy.sol";
 import "./SemaphoreAccount.sol";
+import "./semaphore/Semaphore.sol";
 
 contract SemaphoreAccountFactory {
     SemaphoreAccount public immutable accountImplementation;
     address public semaphoreAddress;
+    address public verifierAdress;
     IEntryPoint entryPoint;
 
     constructor(IEntryPoint _entryPoint, address _semaphoreAddress) {
@@ -15,6 +17,7 @@ contract SemaphoreAccountFactory {
         entryPoint = _entryPoint;
 
         semaphoreAddress = _semaphoreAddress;
+        verifierAdress = address(Semaphore(_semaphoreAddress).verifier());
     }
 
     function createAccount(
@@ -32,7 +35,7 @@ contract SemaphoreAccountFactory {
                     address(accountImplementation),
                     abi.encodeCall(
                         SemaphoreAccount.initialize,
-                        (semaphoreAddress, groupId)
+                        (semaphoreAddress, verifierAdress, groupId)
                     )
                 )
             )
@@ -53,7 +56,7 @@ contract SemaphoreAccountFactory {
                             address(accountImplementation),
                             abi.encodeCall(
                                 SemaphoreAccount.initialize,
-                                (semaphoreAddress, groupId)
+                                (semaphoreAddress, verifierAdress, groupId)
                             )
                         )
                     )
